@@ -1,0 +1,61 @@
+#!/bin/bash 
+#Monitors directory to remove old logs if it starts to fill up and risk breaking the partition
+
+#Environment variables
+runner=0
+log_dir="/var/log/log_monitor"
+max_percent=95
+
+function usage() {
+	echo "Usage: log_monitor [-p|--p <path>][-m|--max-percent <int>][-l|--log-dir <path>]"
+	echo "-p --path | The path to monitor."
+	echo "-m --max-percent | Set max percent before deleting."
+	echo "-l --log-dir | The path for logging. Default is /var/log/log_monitor"
+}
+
+
+function clean_logs() {
+	while [ $runner = 0 ]; do
+		current_size=$(df -h|grep $mon_path|awk '{print $5}'|sed s+%++g)
+		if [ $current_size -ge $max_percent ]; then
+			echo "Greater than $max_percent%"  
+			echo "Cleaning logs at $(date)" | tee -a $log_dir/event.log
+			clean_log=$(ls $mon_path |head -n 1)
+			rm -rf $mon_path/$clean_log
+		else
+			echo "Less than $%"
+			echo "Completed at $(date)" | tee -a $log_dir/event.log
+			runner=1
+		fi
+	done
+}
+
+###MAIN###
+if [ "$1" != "" ]; then
+	while [ "$1" != "" ]; do
+		case "$1" in
+			-p|--path)
+				shift
+				mon_path=$1
+			;;
+			-m|--max-percent)
+				shift
+				max_percent=$1
+			;;
+			-l|--log-dir)
+				shift
+				log_dir=$1
+			;;
+			*)
+				usage
+				echo "Unknown flag $1"
+				exit
+			;;
+		esac
+		shift
+	done
+else
+	usage
+fi
+clean_logs
+###DONE###
