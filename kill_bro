@@ -1,0 +1,29 @@
+#!/bin/bash
+#Kills all running bro instances
+
+#Variable to store all bro pids
+bro_pids=$(ps -x| grep /usr/local/bro |grep -v grep |awk '{print $1}')
+log_dir="/var/log/killbro/"
+
+#Function to kill bro
+function killbro() {
+	for line in $bro_pids; do
+		kill -9 $line
+	done
+	echo "Killed all bro pids" | tee -a $log_dir/event.log
+}
+
+
+### MAIN ###
+echo "This will kill all bro processes, sometimes they get hungup and dont close properly.(y/n)"
+echo -n "> "; read ans
+case $ans in 
+	y|Y|yes|Yes)
+		killbro
+		exit 0
+	;;
+	*) 
+		exit 1
+	;;
+esac
+### DONE ###

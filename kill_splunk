@@ -1,0 +1,29 @@
+#!/bin/bash
+#Kills all running splunk instances
+
+#Variable to store all splunk pids
+splunk_pids=$(ps -x| grep splunkd |grep -v grep |awk '{print $1}')
+log_dir="/var/log/killsplunk/"
+
+#Function to kill splunk
+function kill_splunk() {
+	for line in $splunk_pids; do
+		kill -9 $line
+	done
+	echo "Killed all splunk pids" | tee -a $log_dir/event.log
+}
+
+
+### MAIN ###
+echo "This will kill all splunk processes, sometimes they get hungup and dont close properly.(y/n)"
+echo -n "> "; read ans
+case $ans in 
+	y|Y|yes|Yes)
+		kill_splunk
+		exit 0
+	;;
+	*) 
+		exit 1
+	;;
+esac
+### DONE ###
