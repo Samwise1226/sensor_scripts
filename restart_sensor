@@ -1,0 +1,95 @@
+#!/bin/bash
+#Stops and restarts splunk and/or bro
+
+#Environment variables
+bro_path="/usr/local/bro"
+splunk_path="/opt/splunk"
+splunk_pids=$(ps -x| grep splunkd |grep -v grep |awk '{print $1}')
+bro_pids=$(ps -x| grep $bro_path |grep -v grep |awk '{print $1}')
+log_dir="/var/log/restart_sensor"
+
+#Usage Function.
+function usage() {
+	echo "restart_sensor.sh [-s|--splunk-path <path> -b|--bro-path <path>]"
+	echo "-s --splunk-path | Path to Splunk binaries"
+	echo "-b --bro-path | Path to Bro binaries"
+}
+
+
+#Function to kill bro
+function kill_bro() {
+	for line in $bro_pids; do
+		kill -9 $line
+	done
+	echo "Killed all bro pids" | tee -a $log_dir/event.log
+}
+
+#Function to kill splunk
+function kill_splunk() {
+	for line in $splunk_pids; do
+		kill -9 $line
+	done
+	echo "Killed all splunk pids" | tee -a $log_dir/event.log
+}
+
+#Starts bro
+function start_bro() {
+	echo "Starting Bro..."
+	$bropath/broctl deploy
+	echo "Bro started at $(date)" | tee -a $log_dir/event.log
+}
+
+#Starts splunk
+function start_splunk() {
+	echo "Starting Splunk..."
+	$splunkpath/splunk start 
+	echo "Splunk started at $(date)" | tee -a $log_dir/event.log
+}
+
+#Main caller function
+function restart_sensor() {
+	kill_bro
+	kill_splunk
+	start_bro
+	start_splunk
+	echo "Restart complete at $(date)" >> $log_dir/event.log
+	echo "***DONE***"
+}
+
+
+### MAIN ###
+if [ "$1" != "" ]; then
+	while [ "$1" != "" ]; do
+		case "$1" in
+			-s|--splunk-path)
+				shift
+				splunk_path=$1
+			;;
+			-b|--bro-path)
+				shift
+				bro_path=$1
+			;;
+			*)
+				echo "Unknown flag $1"
+				exit
+			;;
+		esac
+		shift
+	done
+else
+	usage
+	exit
+fi
+
+echo "This will kill all splunk and bro processes, sometimes they get hungup and dont close properly.(y/n)"
+echo -n "> "; read ans
+case $ans in 
+	y|Y|yes|Yes)
+		restart_sensor
+		exit 0
+	;;
+	*) 
+		exit 1
+	;;
+esac
+### DONE ###
