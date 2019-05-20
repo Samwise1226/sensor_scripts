@@ -1,0 +1,67 @@
+#!/bin/bash
+#cleanup script to run every day (put in crontab)
+#Initial variables
+
+#Default Varialbes
+log_dir="/var/log/"
+
+function usage() {
+	echo "Usage: cleanup.sh [-p|--p <path>][-d|--dest <path>][-l|--log-dir <path>]"
+	echo "-p --path | The path for the backup to be placed."
+	echo "-d --dest | The path to be copied to."
+	echo "-l --log-dir | The path for logging."
+}
+
+
+function cleanup() {
+	todate=$(date +%F)
+	cd $file_path
+	for file in 2019-*; do
+	        if [ $file != $todate ]; then
+				count=5
+                while [ $count -gt 0 ]; do
+                    echo "COMMAND: SCP $file $back_path"
+					scp -r $file $back_path
+                    if [ $? != 0 ]; then
+                        echo "Failed to copy $file at $(date)" | tee -a $log_dir/cleanup.log
+                        echo "Copy failed.restarting... Retries left [$count]" | tee -a $log_dir/cleanup.log
+                        let count--
+                    else
+						echo "Copy success $file at $(date)" | tee -a $log_dir/cleanup.log
+						rm -rf $file 
+						break
+                    fi
+                done
+	        fi
+	done
+}
+
+
+###MAIN###
+if [ "$1" != "" ]; then
+	while [ "$1" != "" ]; do
+		case "$1" in
+			-p|--path)
+				shift
+				file_path=$1
+			;;
+			-d|--dest)
+				shift
+				back_path=$1
+			;;
+			-l|--log-dir)
+				shift
+				log_dir=$1
+			;;
+			*)
+				echo "Unknown flag $1"
+				exit
+			;;
+		esac
+		shift
+	done
+else
+	usage
+fi
+cleanup
+###DONE###
